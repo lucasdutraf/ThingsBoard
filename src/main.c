@@ -1,22 +1,30 @@
+//standard includes
 #include <stdio.h>
 #include <string.h>
-#include "nvs_flash.h"
+
+//esp includes
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
-#include "freertos/semphr.h"
 
-#include <stdio.h>
-#include "sdkconfig.h"
+//freertos includes
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
+
+//driver includes
+#include "nvs_flash.h"
+#include "sdkconfig.h"
 #include "driver/gpio.h"
 
 
+//local includes
 #include "wifi.h"
 #include "http_client.h"
 #include "mqtt.h"
+#include "dht.h"
+#include "delay.h"
 
 #define LED 2
 
@@ -35,17 +43,24 @@ void conectadoWifi(void * params)
 
 void trataComunicacaoComServidor(void * params)
 {
-    char mensagem[50];
+    char mensagem[200];
     char JsonAtributos[200];
 
     if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY)) {
         while(true) {
-            float temperatura = 20.0 + (float)rand()/(float)(RAND_MAX/10.0);
+            float dhtTemperature = DHT11_read().temperature;
+            float dhtHumidity = DHT11_read().humidity;
+            int dhtStatus = DHT11_read().status;
+
+            // assemble json
             sprintf(
                 mensagem,
-                "{\"temperature\": %f}",
-                temperatura
-                );
+                "{\"temperature\": %f, \n\"humidity\": %f, \n\"status_code\": %d}",
+                dhtTemperature,
+                dhtHumidity,
+                dhtStatus
+            );
+            // send json
             mqtt_envia_mensagem("v1/devices/me/telemetry", mensagem);
 
             sprintf(
@@ -54,13 +69,16 @@ void trataComunicacaoComServidor(void * params)
             );
             mqtt_envia_mensagem("v1/devices/me/attributes", JsonAtributos);
 
-            vTaskDelay(3000 / portTICK_PERIOD_MS);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
 }
 
 void app_main(void)
 {
+    // Initialize DHT.
+    DHT11_init(GPIO_NUM_4);
+
     // Inicializa o NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -73,8 +91,10 @@ void app_main(void)
     conexaoMQTTSemaphore = xSemaphoreCreateBinary();
     wifi_start();
 
-    xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
-    xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);
+    xTaskCreate(&conectadoWifi,  "MQTT connection", 4096, NULL, 1, NULL);
+    xTaskCreate(&trataComunicacaoComServidor, "Broker connection", 4096, NULL, 1, NULL);
+
+    // works only after unplugging and plugging the USB cable
 
     // gpio_pad_select_gpio(LED);
     // gpio_set_direction(LED, GPIO_MODE_OUTPUT);
@@ -87,5 +107,13 @@ void app_main(void)
     //     estado = !estado;
     // }
 
+    // DHT11_init(GPIO_NUM_4);
+
+    // while(1) {
+    //     printf("Temperature is %d \n", DHT11_read().temperature);
+    //     printf("Humidity is %d\n", DHT11_read().humidity);
+    //     printf("Status code is %d\n", DHT11_read().status);
+    //     delay(1);
+    // }
 
 }
