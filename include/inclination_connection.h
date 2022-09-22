@@ -3,6 +3,6 @@
 
 void inclination_sensor_setup();
 
-int getDigitalOutput();
+int get_inclination_state();
 
 #endif

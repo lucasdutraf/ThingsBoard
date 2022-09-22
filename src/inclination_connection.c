@@ -17,6 +17,6 @@ void inclination_sensor_setup(){
     gpio_pullup_dis(INCLINATION_GPIO_PORT);
 }
 
-int getDigitalOutput(){
+int get_inclination_state(){
     return gpio_get_level(INCLINATION_GPIO_PORT);
 }

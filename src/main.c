@@ -41,24 +41,35 @@ void conectadoWifi(void * params)
     }
 }
 
-void monitorInclination(void * params)
+void monitorLocalInclination(void * params)
 {
     while(true) {
-        // if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY)) {
-            // Processamento Internet
-        int inclination = getDigitalOutput();
+        int inclination = get_inclination_state();
         printf("Inclination: %d\n", inclination);
         led_state(inclination);
         vTaskDelay(100 / portTICK_PERIOD_MS);
-            // if(getDigitalOutput() == 1){
-            //     printf("Inclinação detectada\n");
-            // }
-            // else {
-            //     printf("Inclinação não detectada\n");
-            // }
-            // int digitalOutput = getDigitalOutput();
-            // printf("Digital Output: %d)", digitalOutput);
-        // }
+    }
+}
+
+void sendInclination(void * params)
+{
+    char inclinationString[50];
+
+    if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY)) {
+        while(true) {
+            int inclination = get_inclination_state();
+
+            //assemble the json string
+            sprintf(
+                inclinationString,
+                "{\"inclination\": %d}",
+                inclination
+            );
+            //send json string to mqtt
+            mqtt_envia_mensagem("v1/devices/me/attributes", inclinationString);
+            
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+        }
     }
 }
 
@@ -121,7 +132,8 @@ void app_main(void)
 
     xTaskCreate(&conectadoWifi,  "MQTT connection", 4096, NULL, 1, NULL);
     // xTaskCreate(&trataComunicacaoComServidor, "Broker connection", 4096, NULL, 1, NULL);
-    xTaskCreate(&monitorInclination, "Inclination connection", 4096, NULL, 1, NULL);
+    xTaskCreate(&monitorLocalInclination, "Local inclination connection", 4096, NULL, 1, NULL);
+    xTaskCreate(&sendInclination, "Remote inclination connection", 4096, NULL, 1, NULL);
 
     // works only after unplugging and plugging the USB cable
 
