@@ -21,6 +21,7 @@
 #include "mqtt.h"
 #include "json.h"
 #include "led.h"
+#include "low_power.h"
 
 #define TAG "MQTT"
 
@@ -32,10 +33,24 @@ void handle_receive_data(const char *data)
     json request = json_to_message(data);
 
     if (strcmp(request.method, "turn_on_led") == 0) {
+        printf("Turning on led\n");
         turn_on_led();
     }
     else if (strcmp(request.method, "turn_off_led") == 0) {
+        printf("Turning off led\n");
         turn_off_led();
+    }
+    else if (strcmp(request.method, "fade_led") == 0) {
+        printf("Fading led\n");
+        fade_led();
+    }
+    else if (strcmp(request.method, "light_sleep") == 0) {
+        printf("Light sleep\n");
+        light_sleep();
+    }
+    else if (strcmp(request.method, "deep_sleep") == 0) {
+        printf("Deep sleep\n");
+        deep_sleep();
     }
 }
 
@@ -87,7 +102,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 void mqtt_start()
 {
     esp_mqtt_client_config_t mqtt_config = {
-        // .uri = "mqtt://mqtt.eclipse.org",
         .uri = "mqtt://164.41.98.25",
         .username = "WWpe2mKSug6k1PYxqzo6",
     };
