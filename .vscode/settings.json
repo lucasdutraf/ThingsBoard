@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "gpio.h": "c",
-        "dht.h": "c"
+        "dht.h": "c",
+        "inclination_connection.h": "c",
+        "task.h": "c"
     }
 }

@@ -18,15 +18,15 @@
 #include "sdkconfig.h"
 #include "driver/gpio.h"
 
-
 //local includes
 #include "wifi.h"
 #include "http_client.h"
 #include "mqtt.h"
 #include "dht.h"
 #include "delay.h"
+#include "inclination_connection.h"
+#include "led.h"
 
-#define LED 2
 
 xSemaphoreHandle conexaoWifiSemaphore;
 xSemaphoreHandle conexaoMQTTSemaphore;
@@ -41,10 +41,31 @@ void conectadoWifi(void * params)
     }
 }
 
+void monitorInclination(void * params)
+{
+    while(true) {
+        // if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY)) {
+            // Processamento Internet
+        int inclination = getDigitalOutput();
+        printf("Inclination: %d\n", inclination);
+        led_state(inclination);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+            // if(getDigitalOutput() == 1){
+            //     printf("Inclinação detectada\n");
+            // }
+            // else {
+            //     printf("Inclinação não detectada\n");
+            // }
+            // int digitalOutput = getDigitalOutput();
+            // printf("Digital Output: %d)", digitalOutput);
+        // }
+    }
+}
+
 void trataComunicacaoComServidor(void * params)
 {
-    char mensagem[200];
-    char JsonAtributos[200];
+    char telemetry[200];
+    char attributes[200];
 
     if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY)) {
         while(true) {
@@ -54,21 +75,22 @@ void trataComunicacaoComServidor(void * params)
 
             // assemble json
             sprintf(
-                mensagem,
-                "{\"temperature\": %f, \n\"humidity\": %f, \n\"status_code\": %d}",
+                telemetry,
+                "{\"temperature\": %f, \n\"humidity\": %f}",
                 dhtTemperature,
-                dhtHumidity,
-                dhtStatus
+                dhtHumidity
             );
             // send json
-            mqtt_envia_mensagem("v1/devices/me/telemetry", mensagem);
+            mqtt_envia_mensagem("v1/devices/me/telemetry", telemetry);
 
             sprintf(
-                JsonAtributos,
-                "{\"quantidade de pinos\": 5,\n\"umidade\": 20}"
+                attributes,
+                "{\"status_code\": %d}",
+                dhtStatus
             );
-            mqtt_envia_mensagem("v1/devices/me/attributes", JsonAtributos);
+            mqtt_envia_mensagem("v1/devices/me/attributes", attributes);
 
+            // delay 1s
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
     }
@@ -79,7 +101,13 @@ void app_main(void)
     // Initialize DHT.
     DHT11_init(GPIO_NUM_4);
 
-    // Inicializa o NVS
+    // Initialize inclination sensor.
+    inclination_sensor_setup();
+
+    // Initialize LED.
+    led_setup();
+
+    // Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -92,28 +120,9 @@ void app_main(void)
     wifi_start();
 
     xTaskCreate(&conectadoWifi,  "MQTT connection", 4096, NULL, 1, NULL);
-    xTaskCreate(&trataComunicacaoComServidor, "Broker connection", 4096, NULL, 1, NULL);
+    // xTaskCreate(&trataComunicacaoComServidor, "Broker connection", 4096, NULL, 1, NULL);
+    xTaskCreate(&monitorInclination, "Inclination connection", 4096, NULL, 1, NULL);
 
     // works only after unplugging and plugging the USB cable
-
-    // gpio_pad_select_gpio(LED);
-    // gpio_set_direction(LED, GPIO_MODE_OUTPUT);
-
-    // int estado = 0;
-    // while (true)
-    // {
-    //     gpio_set_level(LED, estado);
-    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    //     estado = !estado;
-    // }
-
-    // DHT11_init(GPIO_NUM_4);
-
-    // while(1) {
-    //     printf("Temperature is %d \n", DHT11_read().temperature);
-    //     printf("Humidity is %d\n", DHT11_read().humidity);
-    //     printf("Status code is %d\n", DHT11_read().status);
-    //     delay(1);
-    // }
 
 }
