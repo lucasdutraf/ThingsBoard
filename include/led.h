@@ -9,4 +9,6 @@ void turn_on_led();
 
 void turn_off_led();
 
+void fade_led();
+
 #endif
