@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <time.h>
+
 #include "delay.h"
 
 void delay(int number_of_seconds)

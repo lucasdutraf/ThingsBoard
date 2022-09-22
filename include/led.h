@@ -5,4 +5,8 @@ void led_setup();
 
 void led_state();
 
+void turn_on_led();
+
+void turn_off_led();
+
 #endif

@@ -18,3 +18,11 @@ void led_setup(){
 void led_state(int state){
     gpio_set_level(LED, state);
 }
+
+void turn_on_led(){
+    led_state(1);
+}
+
+void turn_off_led(){
+    led_state(0);
+}

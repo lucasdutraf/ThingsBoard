@@ -68,21 +68,19 @@ void sendInclination(void * params)
             //send json string to mqtt
             mqtt_envia_mensagem("v1/devices/me/attributes", inclinationString);
             
-            vTaskDelay(100 / portTICK_PERIOD_MS);
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
         }
     }
 }
 
-void trataComunicacaoComServidor(void * params)
+void sendHumidityAndTemperature(void * params)
 {
     char telemetry[200];
-    char attributes[200];
 
     if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY)) {
         while(true) {
             float dhtTemperature = DHT11_read().temperature;
             float dhtHumidity = DHT11_read().humidity;
-            int dhtStatus = DHT11_read().status;
 
             // assemble json
             sprintf(
@@ -93,13 +91,6 @@ void trataComunicacaoComServidor(void * params)
             );
             // send json
             mqtt_envia_mensagem("v1/devices/me/telemetry", telemetry);
-
-            sprintf(
-                attributes,
-                "{\"status_code\": %d}",
-                dhtStatus
-            );
-            mqtt_envia_mensagem("v1/devices/me/attributes", attributes);
 
             // delay 1s
             vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -131,8 +122,8 @@ void app_main(void)
     wifi_start();
 
     xTaskCreate(&conectadoWifi,  "MQTT connection", 4096, NULL, 1, NULL);
-    // xTaskCreate(&trataComunicacaoComServidor, "Broker connection", 4096, NULL, 1, NULL);
-    xTaskCreate(&monitorLocalInclination, "Local inclination connection", 4096, NULL, 1, NULL);
+    // xTaskCreate(&sendHumidityAndTemperature, "Broker connection", 4096, NULL, 1, NULL);
+    // xTaskCreate(&monitorLocalInclination, "Local inclination connection", 4096, NULL, 1, NULL);
     xTaskCreate(&sendInclination, "Remote inclination connection", 4096, NULL, 1, NULL);
 
     // works only after unplugging and plugging the USB cable
