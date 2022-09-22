@@ -122,7 +122,7 @@ void app_main(void)
     wifi_start();
 
     xTaskCreate(&conectadoWifi,  "MQTT connection", 4096, NULL, 1, NULL);
-    // xTaskCreate(&sendHumidityAndTemperature, "Broker connection", 4096, NULL, 1, NULL);
+    xTaskCreate(&sendHumidityAndTemperature, "Broker connection", 4096, NULL, 1, NULL);
     // xTaskCreate(&monitorLocalInclination, "Local inclination connection", 4096, NULL, 1, NULL);
     xTaskCreate(&sendInclination, "Remote inclination connection", 4096, NULL, 1, NULL);
 
