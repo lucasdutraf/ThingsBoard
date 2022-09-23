@@ -51,34 +51,14 @@ void monitorLocalInclination(void * params)
     }
 }
 
-void sendInclination(void * params)
+void sendMQTTData(void * params)
 {
+    char telemetry[200];
     char inclinationString[50];
 
     if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY)) {
         while(true) {
             int inclination = get_inclination_state();
-
-            //assemble the json string
-            sprintf(
-                inclinationString,
-                "{\"inclination\": %d}",
-                inclination
-            );
-            //send json string to mqtt
-            mqtt_envia_mensagem("v1/devices/me/attributes", inclinationString);
-            
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
-        }
-    }
-}
-
-void sendHumidityAndTemperature(void * params)
-{
-    char telemetry[200];
-
-    if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY)) {
-        while(true) {
             float dhtTemperature = DHT11_read().temperature;
             float dhtHumidity = DHT11_read().humidity;
 
@@ -92,8 +72,18 @@ void sendHumidityAndTemperature(void * params)
             // send json
             mqtt_envia_mensagem("v1/devices/me/telemetry", telemetry);
 
+
+            //assemble the json string
+            sprintf(
+                inclinationString,
+                "{\"inclination\": %d}",
+                inclination
+            );
+            //send json string to mqtt
+            mqtt_envia_mensagem("v1/devices/me/attributes", inclinationString);
+
             // delay 1s
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
     }
 }
@@ -122,9 +112,8 @@ void app_main(void)
     wifi_start();
 
     xTaskCreate(&conectadoWifi,  "MQTT connection", 4096, NULL, 1, NULL);
-    xTaskCreate(&sendHumidityAndTemperature, "Broker connection", 4096, NULL, 1, NULL);
+    xTaskCreate(&sendMQTTData, "Broker connection", 4096, NULL, 1, NULL);
     // xTaskCreate(&monitorLocalInclination, "Local inclination connection", 4096, NULL, 1, NULL);
-    xTaskCreate(&sendInclination, "Remote inclination connection", 4096, NULL, 1, NULL);
 
     // works only after unplugging and plugging the USB cable
 
