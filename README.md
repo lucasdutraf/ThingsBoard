@@ -39,4 +39,4 @@ O passo a passo considera que todos os requisitos do projeto foram cumpridos.
 
 ## Vídeo de demonstração
 
-...
+https://youtu.be/KCQdUCcqCCU
